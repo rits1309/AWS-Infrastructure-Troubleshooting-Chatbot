@@ -15,6 +15,8 @@ cloudops-ai-assistant/
 │       └── deploy.yml                 # CD: Terraform plan/apply on main merge
 │
 ├── assets/
+│   ├── architecture/                  # System architecture diagrams
+│   │   └── eks-troubleshooting-assistant-architecture.png
 │   └── screenshots/                   # Verification artifacts & evaluation proofs
 │       ├── 01_bedrock_nova_lite_answer.png
 │       └── 02_bedrock_s3_citations.png
@@ -83,6 +85,10 @@ cloudops-ai-assistant/
 ---
 
 ## 3. End-to-End System Architecture
+
+![AWS EKS Troubleshooting Assistant Architecture](assets/architecture/eks-troubleshooting-assistant-architecture.png)
+
+### Architecture Component Breakdown & Data Flow
 
 ```mermaid
 flowchart TD

@@ -7,7 +7,11 @@ Instead of generating ungrounded or hallucinated answers, the assistant queries 
 
 ---
 
-## 🏗️ Phase 1 Architecture
+## 🏗️ Architecture Overview
+
+![AWS EKS Troubleshooting Assistant Architecture](assets/architecture/eks-troubleshooting-assistant-architecture.png)
+
+### RAG Data Flow (Phase 1 Implemented)
 
 ```mermaid
 flowchart LR
