@@ -1,9 +1,6 @@
-# Phase 1 Summary: CloudOps AI Assistant — Bedrock RAG & Runbook Grounding
+# CloudOps AI Assistant — AWS Infrastructure Troubleshooting Chatbot
 
-## 📌 Executive Summary
-In **Phase 1 (Milestone 1)**, we successfully established and verified the core AI retrieval-augmented generation (RAG) pipeline for the **CloudOps AI Assistant**. 
-
-Instead of generating ungrounded or hallucinated answers, the assistant queries operational Kubernetes runbooks stored in **Amazon S3**, searches vector embeddings via **Amazon Titan Text Embeddings v2** on **Amazon OpenSearch Serverless**, and synthesizes an actionable troubleshooting response with citations using **Amazon Nova Lite**.
+An AI-powered troubleshooting assistant built on **Amazon Bedrock** designed to help Cloud and DevOps engineers diagnose AWS and Kubernetes infrastructure incidents (such as EKS pod scheduling failures, CrashLoopBackOff, IAM AccessDenied, and API Gateway 503 errors) using grounded operational runbooks and architecture documentation.
 
 ---
 
@@ -11,22 +8,40 @@ Instead of generating ungrounded or hallucinated answers, the assistant queries 
 
 ![AWS EKS Troubleshooting Assistant Architecture](assets/architecture/eks-troubleshooting-assistant-architecture.png)
 
-### RAG Data Flow (Phase 1 Implemented)
+### End-to-End Request Flow
 
 ```mermaid
 flowchart LR
-    A["Operator / Python Client\n(test_kb_query.py)"] -->|"Query: CrashLoopBackOff"| B["Amazon Bedrock\nAgent Runtime"]
-    B -->|"Vector Search"| C["Bedrock Knowledge Base\n(IZBE4IPYRY)"]
-    C -->|"Retrieve Embeddings"| D["OpenSearch Serverless\n+ Titan Embeddings v2"]
-    D -->|"Read Source Chunks"| E["Amazon S3 Runbook Store\ns3://cloudops-runbooks-713881796636"]
-    C -->|"Context Chunks + Prompt"| F["Amazon Nova Lite\n(Inference Profile)"]
-    F -->|"Synthesized Answer\n+ S3 Citations"| A
+    A["Web Client / Engineer"] -->|"POST /chat"| B["Amazon API Gateway"]
+    B -->|"Event Proxy"| C["AWS Lambda\n(Python 3.12 Backend)"]
+    C -->|"Sanitize & Validate"| D["Input Validator"]
+    D -->|"retrieve_and_generate"| E["Amazon Bedrock\nKnowledge Base"]
+    E -->|"Vector Search"| F["OpenSearch Serverless\n+ Titan Embeddings v2"]
+    F -->|"Fetch Chunks"| G["Amazon S3 Runbooks"]
+    E -->|"Synthesize Answer"| H["Amazon Nova Lite\n(APAC Inference Profile)"]
+    H -->|"Format Response & Citations"| C
+    C -->|"HTTP 200 + CORS"| A
 ```
 
 ---
 
-## ⚙️ Configuration & Key Parameters
+## 📊 Milestone Progress Tracker
 
+| Milestone | Scope | Status | Evidence / Artifact |
+| :--- | :--- | :---: | :--- |
+| **Phase 1** | **Bedrock Knowledge Base & RAG Grounding**<br>• 5 EKS Runbooks<br>• S3 Ingestion & OpenSearch Serverless<br>• Nova Lite Inference Profile Integration | ✅ **Completed** | [Phase 1 Summary](PHASE_1_SUMMARY.md) & Screenshots |
+| **Phase 2** | **Serverless Python Backend**<br>• Modular Lambda handler (`handler.py`)<br>• Input validation & prompt injection sanitization<br>• Citation deduplication & CORS formatting<br>• 21 unit tests (100% offline verification) | ✅ **Completed** | Full test suite in `backend/tests/` |
+| **Phase 3** | **Infrastructure as Code (Terraform)**<br>• Modular IaC for S3, Lambda, API Gateway, and IAM | 🟡 **Next** | `terraform/` |
+| **Phase 4** | **Frontend Web Interface**<br>• Responsive Chat UI with citation drawer & command copy | ⚪ Upcoming | `frontend/` |
+| **Phase 5** | **Evaluation & Observability**<br>• 25-question incident evaluation benchmark & CloudWatch alarms | ⚪ Upcoming | `eval/` |
+
+---
+
+## 🟢 Phase 1: Knowledge Base & RAG Grounding
+
+In Phase 1, we established and verified the core RAG pipeline connecting Amazon S3 runbooks to Amazon Bedrock.
+
+### Key Configuration
 | Component | Identifier / Value | Description |
 | :--- | :--- | :--- |
 | **AWS Account ID** | `713881796636` | Dedicated AWS account |
@@ -37,100 +52,118 @@ flowchart LR
 | **Vector Store** | `Amazon OpenSearch Serverless` | Auto-managed vector index |
 | **Inference Profile** | `arn:aws:bedrock:ap-south-1:713881796636:inference-profile/apac.amazon.nova-lite-v1:0` | APAC System Cross-Region Profile for Nova Lite |
 
----
+### Verified Results & Proof of Grounding
 
-## 🛠️ Execution Steps Performed
-
-### 1. Document Preparation & S3 Sync
-- Authored production-grade EKS operational runbooks (`pod-pending.md`, `crashloopbackoff.md`, `imagepullbackoff.md`, `node-notready.md`, `alb-ingress-504.md`).
-- Synced documents to the dedicated S3 bucket:
-  ```powershell
-  aws s3 sync ./docs/ s3://cloudops-runbooks-713881796636/docs/
-  ```
-
-### 2. Knowledge Base & Vector Store Setup
-- Created Bedrock Knowledge Base `IZBE4IPYRY` in `ap-south-1`.
-- Associated S3 data source `cloudops-runbooks-s3`.
-- Selected **Amazon Titan Text Embeddings v2** with managed OpenSearch Serverless collection.
-- Executed initial **Sync / Ingestion job** to tokenize and chunk the markdown runbooks.
-
-### 3. Model Routing & Inference Profile Resolution
-- Initial test with raw on-demand model ARN returned:
-  `ValidationException: Invocation of model ID amazon.nova-lite-v1:0 with on-demand throughput isn't supported.`
-- Resolved by discovering and routing requests through the official Bedrock APAC Inference Profile:
-  `arn:aws:bedrock:ap-south-1:713881796636:inference-profile/apac.amazon.nova-lite-v1:0`
-
-### 4. Verification via Python Client
-Executed the query against the live Knowledge Base:
-```powershell
-python backend/test_kb_query.py `
-  --kb-id IZBE4IPYRY `
-  --region ap-south-1 `
-  --model-arn "arn:aws:bedrock:ap-south-1:713881796636:inference-profile/apac.amazon.nova-lite-v1:0" `
-  --question "How do I troubleshoot CrashLoopBackOff?"
-```
-
----
-
-## 📸 Verified Results & Evidence
-
-### Test 1: Grounded Troubleshooting Output Generated by Nova Lite
-The model generated accurate diagnostic steps (inspecting `Exit Code 137 OOMKilled`, checking `kubectl logs --previous --tail=50`, reviewing liveness/startup probes, and checking exit codes 126/127):
-
+#### 1. Grounded Output for `CrashLoopBackOff`:
 ![Nova Lite Answer](assets/screenshots/01_bedrock_nova_lite_answer.png)
 
-```text
-Querying Bedrock Knowledge Base (IZBE4IPYRY)...
-Question: How do I troubleshoot CrashLoopBackOff?
-
-============================================================
-ANSWER:
-============================================================
-To troubleshoot CrashLoopBackOff, follow these steps:
-
-1. Check the pod status using `kubectl get pods` and look for `CrashLoopBackOff` or `Error` status.
-2. Check the pod logs using `kubectl logs <pod-name> -n <namespace> --previous --tail=50` to identify the cause of the crash.
-3. Based on the logs, determine the cause of the crash and take appropriate action:
-   - If the cause is an application runtime crash, resolve the issue by fixing the unhandled exception, syntax error, missing environment variable, or database connection failure.
-   - If the cause is Out of Memory (OOMKilled), increase `resources.limits.memory` in the deployment manifest or profile application memory leaks.
-   - If the cause is a misconfigured liveness or startup probe, increase `initialDelaySeconds` or add a `startupProbe` to accommodate slow app boot times.
-   - If the cause is missing environment variables, ConfigMaps, or Secrets, ensure that the required configuration bindings are present during container boot.
-   - If the cause is a permission issue, ensure that the executable has execute permission (`chmod +x`) and the binary/entrypoint exists.
-4. If the logs do not provide enough information, escalate the issue to the Service Developer or Platform Lead as appropriate.
-```
-
----
-
-### Test 2: Grounded Citations & S3 Source Verification
-The response verified source grounding by returning 8 granular citations pointing directly to `crashloopbackoff.md` in S3:
-
+#### 2. S3 Granular Source Citations:
 ![S3 Citations](assets/screenshots/02_bedrock_s3_citations.png)
 
+---
+
+## 🟢 Phase 2: Serverless Python Backend
+
+In Phase 2, we built a modular, production-ready, and unit-tested AWS Lambda backend that interfaces cleanly with Amazon API Gateway.
+
+### Backend Architecture (`backend/src/`)
+
 ```text
-============================================================
-SOURCES / CITATIONS:
-============================================================
-1. Location: s3://cloudops-runbooks-713881796636/docs/eks/crashloopbackoff.md
-2. Location: s3://cloudops-runbooks-713881796636/docs/eks/crashloopbackoff.md
-   Snippet : logs kubectl logs <pod-name> -n <namespace> --previous --tail=50 ... ## Resolution Guidance - **Exit Code 137 (OOMKilled) ...
-3. Location: s3://cloudops-runbooks-713881796636/docs/eks/crashloopbackoff.md
-...
-8. Location: s3://cloudops-runbooks-713881796636/docs/eks/crashloopbackoff.md
+backend/
+├── src/
+│   ├── __init__.py
+│   ├── handler.py                 # Lambda entrypoint & API Gateway event proxy
+│   ├── validator.py               # Input validation & prompt injection sanitization
+│   ├── kb_service.py              # Bedrock Agent Runtime client (lazy-loaded)
+│   └── response_formatter.py      # Citation extractor & CORS HTTP response builder
+├── tests/
+│   ├── __init__.py
+│   ├── test_handler.py            # API Gateway event & HTTP status tests
+│   ├── test_kb_service.py         # Mocked Bedrock SDK & error handling tests
+│   ├── test_response_formatter.py # CORS framing & citation deduplication tests
+│   └── test_validator.py          # Boundary & prompt injection tests
+├── requirements.txt               # boto3, botocore, pydantic, pytest
+└── test_local_lambda.py           # Local simulator for API Gateway events
+```
+
+### Module Responsibilities
+
+1. **`validator.py`**:
+   - Rejects empty bodies and non-string messages.
+   - Enforces length bounds (`3 <= len(message) <= 1000`).
+   - Blocks prompt injection attempts using regex patterns (`ignore prior instructions`, `system: you are now`, etc.).
+   - Validates optional `sessionId` strings (up to 128 chars).
+
+2. **`response_formatter.py`**:
+   - Attaches standard CORS headers (`Access-Control-Allow-Origin: *`, `POST, OPTIONS`).
+   - Deduplicates overlapping citations returned by Bedrock.
+   - Converts raw S3 URIs into readable titles (e.g. `pod-pending.md` $\rightarrow$ `"Pod Pending"`).
+   - Truncates long text snippets cleanly for UI card rendering.
+
+3. **`kb_service.py`**:
+   - Encapsulates `bedrock-agent-runtime.retrieve_and_generate`.
+   - Uses lazy client loading for fast Lambda warm-start invocations.
+   - Translates AWS `ClientError` (e.g. `ThrottlingException`, `AccessDeniedException`) into structured errors.
+
+4. **`handler.py`**:
+   - Entrypoint for API Gateway REST (v1) and HTTP API (v2) payloads.
+   - Handles CORS preflight (`OPTIONS`) requests immediately with HTTP 200.
+   - Orchestrates validation $\rightarrow$ Bedrock invocation $\rightarrow$ response formatting.
+   - Returns strict HTTP status codes: `200 OK`, `400 Bad Request`, `500 Config Error`, `502 Bedrock Error`.
+
+---
+
+## 🧪 Testing & Verification
+
+### Running the Test Suite (21 Unit Tests)
+The entire backend is verified with unit tests using mocks for 100% offline testing without incurring AWS charges:
+
+```powershell
+pytest backend/tests/ -v
+```
+
+```text
+============================= test session starts =============================
+collected 21 items
+
+backend/tests/test_handler.py::test_cors_preflight_options_rest_api PASSED
+backend/tests/test_handler.py::test_cors_preflight_options_http_api_v2 PASSED
+backend/tests/test_handler.py::test_missing_body PASSED
+backend/tests/test_handler.py::test_malformed_json_body PASSED
+backend/tests/test_handler.py::test_validation_error_short_message PASSED
+backend/tests/test_handler.py::test_bedrock_runtime_error_returns_502 PASSED
+backend/tests/test_handler.py::test_successful_query_flow PASSED
+backend/tests/test_kb_service.py::test_missing_kb_id_raises_value_error PASSED
+backend/tests/test_kb_service.py::test_successful_query_mock PASSED
+backend/tests/test_kb_service.py::test_client_error_handling PASSED
+backend/tests/test_response_formatter.py::test_build_http_response_structure PASSED
+backend/tests/test_response_formatter.py::test_build_http_error_response PASSED
+backend/tests/test_response_formatter.py::test_format_citations_empty PASSED
+backend/tests/test_response_formatter.py::test_format_citations_extraction_and_deduplication PASSED
+backend/tests/test_validator.py::test_valid_request PASSED
+backend/tests/test_validator.py::test_valid_request_with_session PASSED
+backend/tests/test_validator.py::test_empty_or_none_body PASSED
+backend/tests/test_validator.py::test_missing_message_field PASSED
+backend/tests/test_validator.py::test_message_too_short PASSED
+backend/tests/test_validator.py::test_message_too_long PASSED
+backend/tests/test_validator.py::test_prompt_injection_rejection PASSED
+
+============================= 21 passed in 0.15s =============================
+```
+
+### Running the Local API Gateway Simulator
+To simulate how the Lambda handler processes an API Gateway request:
+
+```powershell
+python backend/test_local_lambda.py
 ```
 
 ---
 
-## 🧹 Teardown Completed
+## 🚀 Next Milestone: Phase 3 (Terraform Infrastructure as Code)
 
-To prevent ongoing hourly charges from **Amazon OpenSearch Serverless** (~$0.24/hr):
-1. **Bedrock Knowledge Base Deleted:** `IZBE4IPYRY` removed via CLI/Console.
-2. **OpenSearch Serverless Collection Deleted:** Vector storage collection terminated.
-3. **S3 Runbook Bucket Cleared:** S3 storage deleted or kept empty for the next iteration.
-
----
-
-## 🚀 Next Milestone: Phase 2 (Serverless API Backend)
-- **AWS Lambda Function:** Wrap `retrieve_and_generate` into an event-driven Python Lambda handler with input sanitization and CORS support.
-- **Amazon API Gateway:** Expose a secure `POST /chat` endpoint with request throttling.
-- **Cognito / JWT:** Configure authentication boundary.
-- **Terraform Automation:** Codify S3, Lambda, IAM roles, and API Gateway into reproducible Infrastructure as Code.
+With the application code tested and decoupled from the cloud environment, Phase 3 will codify the entire AWS infrastructure into Terraform:
+- **`s3_knowledge_base`**: Private S3 bucket with SSE-S3 encryption for runbooks.
+- **`lambda`**: Python 3.12 package deployment with least-privilege IAM execution role (`bedrock:RetrieveAndGenerate` only).
+- **`api_gateway`**: HTTP API v2 route (`POST /chat`), CORS configuration, and 5 req/sec rate throttling.
+- **Teardown automation**: Complete environment provisioning and zero-cost teardown via `terraform apply` / `terraform destroy`.
