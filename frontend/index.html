@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOps AI Assistant — AWS Bedrock Infrastructure Troubleshooter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Application Header -->
+        <header class="header">
+            <div class="header-brand">
+                <div class="header-logo">⚡</div>
+                <div>
+                    <h1 class="header-title">CloudOps AI Assistant</h1>
+                    <div class="header-subtitle">AWS Infrastructure Troubleshooting • Powered by Amazon Bedrock</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="connection-status">Bedrock Active</span>
+                </div>
+                <button id="btn-new-chat" class="btn-secondary" title="Start new session">New Chat</button>
+            </div>
+        </header>
+
+        <!-- Quick Starter Prompts -->
+        <div class="quick-prompts-bar">
+            <span class="prompt-chip" data-prompt="Why are my EKS pods stuck in Pending state?">EKS Pod Pending</span>
+            <span class="prompt-chip" data-prompt="How do I troubleshoot EKS CrashLoopBackOff with Exit Code 137?">CrashLoopBackOff (OOM)</span>
+            <span class="prompt-chip" data-prompt="Troubleshoot EKS ImagePullBackOff and ECR permissions.">ImagePullBackOff</span>
+            <span class="prompt-chip" data-prompt="What causes AWS IAM AccessDenied HTTP 403 errors?">IAM AccessDenied</span>
+            <span class="prompt-chip" data-prompt="Why is my EKS ALB Ingress returning HTTP 504 Gateway Timeout?">ALB Ingress 504</span>
+        </div>
+
+        <!-- Chat History Viewport -->
+        <main class="chat-viewport" id="chat-viewport">
+            <!-- Initial Welcome Message from Assistant -->
+            <div class="message-row assistant">
+                <div class="avatar bot-avatar">AI</div>
+                <div class="message-bubble">
+                    <p><strong>Hello! I am your CloudOps AI Assistant.</strong></p>
+                    <p>I help Cloud and DevOps engineers diagnose AWS and Kubernetes infrastructure incidents using grounded operational runbooks.</p>
+                    <p>Ask a question or pick one of the quick prompts above to get started.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Chat Input Bar -->
+        <footer class="chat-input-bar">
+            <div class="input-container">
+                <textarea 
+                    id="user-input" 
+                    class="chat-input" 
+                    placeholder="Describe your AWS/EKS incident (e.g. Why are my pods in CrashLoopBackOff?)..." 
+                    rows="1" 
+                    maxlength="1000"></textarea>
+                <button id="btn-send" class="btn-send">
+                    <span>Send</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <div class="input-meta">
+                <span>Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for a new line</span>
+                <span id="char-counter">0 / 1000</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

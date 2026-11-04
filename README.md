@@ -32,8 +32,8 @@ flowchart LR
 | **Phase 1** | **Bedrock Knowledge Base & RAG Grounding**<br>• 5 EKS Runbooks<br>• S3 Ingestion & OpenSearch Serverless<br>• Nova Lite Inference Profile Integration | ✅ **Completed** | [Phase 1 Summary](PHASE_1_SUMMARY.md) & Screenshots |
 | **Phase 2** | **Serverless Python Backend**<br>• Modular Lambda handler (`handler.py`)<br>• Input validation & prompt injection sanitization<br>• Citation deduplication & CORS formatting<br>• 21 unit tests (100% offline verification) | ✅ **Completed** | Full test suite in `backend/tests/` |
 | **Phase 3** | **Infrastructure as Code (Terraform)**<br>• Modular IaC for IAM, Lambda packaging, and API Gateway<br>• Automated zip bundling, CORS & cost throttling safeguards | ✅ **Completed** | `terraform/` (Validated) |
-| **Phase 4** | **Frontend Web Interface**<br>• Responsive Chat UI with citation drawer & command copy | 🟡 **Next** | `frontend/` |
-| **Phase 5** | **Evaluation & Observability**<br>• 25-question incident evaluation benchmark & CloudWatch alarms | ⚪ Upcoming | `eval/` |
+| **Phase 4** | **Frontend Web Interface**<br>• Responsive dark-mode DevOps UI with citation drawer & one-click command copy<br>• Session continuity & offline fallback simulation | ✅ **Completed** | `frontend/` (Verified) |
+| **Phase 5** | **Evaluation & Observability**<br>• 25-question incident evaluation benchmark & CloudWatch alarms | 🟡 **Next** | `eval/` |
 
 ---
 
@@ -229,10 +229,53 @@ terraform destroy
 
 ---
 
-## 🚀 Next Milestone: Phase 4 (Frontend Web Interface)
+## 🟢 Phase 4: Frontend Web Interface (Chat UI)
 
-Phase 4 will deliver a clean, responsive single-page web interface:
-- **Chat Interface:** Dark-mode DevOps UI with message history.
-- **Copy Commands:** One-click copy for `kubectl` and AWS CLI diagnostic commands.
-- **Citation Viewer:** Interactive drawer displaying S3 runbook sources and snippets.
-- **Client Configuration:** Pre-wired to invoke the API Gateway `POST /chat` endpoint.
+In Phase 4, we built a modern, responsive single-page web interface tailored for Cloud and DevOps engineers troubleshooting AWS/EKS incidents.
+
+### Frontend Structure (`frontend/`)
+
+```text
+frontend/
+├── index.html        # Semantic HTML layout with prompt chips & chat viewport
+├── styles.css        # Modern dark-mode DevOps aesthetic (Terminal styling)
+├── app.js            # API caller, markdown parser, citation cards & copy button logic
+└── config.js         # API Gateway endpoint URL & fallback configuration
+```
+
+### Key UI Features
+
+1. **Terminal-Style Dark Mode Theme:**
+   - Sleek dark theme (`#0b0f19`) matching modern DevOps tools and AWS Console dark mode.
+   - Status badge showing Bedrock connectivity state.
+2. **One-Click Command Copy:**
+   - Automatically detects bash/CLI code blocks (such as `kubectl describe pod` or `aws iam`) and injects a "Copy" button.
+3. **Interactive Runbook Citation Cards:**
+   - Displays clean, clickable source pills (e.g. `Pod Pending`, `Crashloopbackoff`) for every cited runbook.
+   - Clicking a pill reveals the exact S3 URI location and retrieved context snippet.
+4. **Quick Starter Prompts:**
+   - Clickable chips for common issues: *EKS Pod Pending*, *CrashLoopBackOff (OOM)*, *ImagePullBackOff*, *IAM AccessDenied*, *ALB Ingress 504*.
+5. **Session Continuity & Safe Fallback:**
+   - Manages unique conversation `sessionId` across user turns so multi-turn troubleshooting retains context.
+   - Includes built-in simulated fallback so the UI can be opened directly in any browser for immediate demonstration.
+
+### Running the Frontend Locally
+
+You can launch the frontend directly in your browser:
+```powershell
+# Option A: Open directly in your default browser
+Start-Process "frontend/index.html"
+
+# Option B: Serve via Python static HTTP server
+python -m http.server 8080 --directory frontend
+# Then open http://localhost:8080 in your browser
+```
+
+---
+
+## 🚀 Next Milestone: Phase 5 (Evaluation & Observability)
+
+Phase 5 will establish automated quality assurance and production monitoring:
+- **Curated Benchmark Dataset (`eval/test_dataset.json`):** 25-30 realistic incident scenarios covering EKS, IAM, and API Gateway.
+- **Evaluation Runner (`eval/evaluate_retrieval.py`):** Benchmarks retrieval relevance, answer groundedness, latency, and token cost.
+- **Published Metrics:** Hard data published to `eval/eval_results.md` demonstrating production quality.
