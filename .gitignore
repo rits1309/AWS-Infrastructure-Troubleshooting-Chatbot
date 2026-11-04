@@ -19,3 +19,11 @@ Thumbs.db
 .env
 *.pem
 credentials
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+dist/
+*.zip
