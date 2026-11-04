@@ -31,8 +31,8 @@ flowchart LR
 | :--- | :--- | :---: | :--- |
 | **Phase 1** | **Bedrock Knowledge Base & RAG Grounding**<br>• 5 EKS Runbooks<br>• S3 Ingestion & OpenSearch Serverless<br>• Nova Lite Inference Profile Integration | ✅ **Completed** | [Phase 1 Summary](PHASE_1_SUMMARY.md) & Screenshots |
 | **Phase 2** | **Serverless Python Backend**<br>• Modular Lambda handler (`handler.py`)<br>• Input validation & prompt injection sanitization<br>• Citation deduplication & CORS formatting<br>• 21 unit tests (100% offline verification) | ✅ **Completed** | Full test suite in `backend/tests/` |
-| **Phase 3** | **Infrastructure as Code (Terraform)**<br>• Modular IaC for S3, Lambda, API Gateway, and IAM | 🟡 **Next** | `terraform/` |
-| **Phase 4** | **Frontend Web Interface**<br>• Responsive Chat UI with citation drawer & command copy | ⚪ Upcoming | `frontend/` |
+| **Phase 3** | **Infrastructure as Code (Terraform)**<br>• Modular IaC for IAM, Lambda packaging, and API Gateway<br>• Automated zip bundling, CORS & cost throttling safeguards | ✅ **Completed** | `terraform/` (Validated) |
+| **Phase 4** | **Frontend Web Interface**<br>• Responsive Chat UI with citation drawer & command copy | 🟡 **Next** | `frontend/` |
 | **Phase 5** | **Evaluation & Observability**<br>• 25-question incident evaluation benchmark & CloudWatch alarms | ⚪ Upcoming | `eval/` |
 
 ---
@@ -160,10 +160,79 @@ python backend/test_local_lambda.py
 
 ---
 
-## 🚀 Next Milestone: Phase 3 (Terraform Infrastructure as Code)
+## 🟢 Phase 3: Infrastructure as Code (Terraform)
 
-With the application code tested and decoupled from the cloud environment, Phase 3 will codify the entire AWS infrastructure into Terraform:
-- **`s3_knowledge_base`**: Private S3 bucket with SSE-S3 encryption for runbooks.
-- **`lambda`**: Python 3.12 package deployment with least-privilege IAM execution role (`bedrock:RetrieveAndGenerate` only).
-- **`api_gateway`**: HTTP API v2 route (`POST /chat`), CORS configuration, and 5 req/sec rate throttling.
-- **Teardown automation**: Complete environment provisioning and zero-cost teardown via `terraform apply` / `terraform destroy`.
+In Phase 3, we codified the entire serverless infrastructure into reusable, modular Terraform with zero-cost teardown capabilities.
+
+### Modular Architecture (`terraform/`)
+
+```text
+terraform/
+├── environments/
+│   └── dev/
+│       ├── main.tf          # Root orchestrator wiring modules together
+│       ├── variables.tf     # Configurable inputs (region, KB ID, Model ARN)
+│       ├── outputs.tf       # API endpoint URL & Lambda details
+│       └── terraform.tfvars # Dev environment values
+└── modules/
+    ├── iam/                 # Least-privilege Lambda execution role & policies
+    │   ├── main.tf
+    │   ├── variable.tf
+    │   └── output.tf
+    ├── lambda/              # Automated code zip packaging & Lambda function
+    │   ├── main.tf
+    │   ├── variable.tf
+    │   └── output.tf
+    └── api_gateway/         # HTTP API (v2), POST /chat route, CORS & rate throttling
+        ├── main.tf
+        ├── variable.tf
+        └── output.tf
+```
+
+### Module Responsibilities & Security Safeguards
+
+1. **`modules/iam/`**:
+   - Enforces **Least Privilege**: grants `bedrock:RetrieveAndGenerate` strictly on the target Knowledge Base ARN and basic CloudWatch logging.
+   - **Zero infrastructure modification permissions**: no EC2, EKS, or S3 write access.
+
+2. **`modules/lambda/`**:
+   - Automatically packages `backend/src/` into a deployment zip using `data "archive_file"`.
+   - Uses `source_code_hash` to detect file changes and deploy code updates idempotently.
+   - Sets execution timeout (30s) and memory (256MB) with a 14-day CloudWatch log retention policy.
+
+3. **`modules/api_gateway/`**:
+   - Deploys a cost-effective **HTTP API (v2)** with native CORS headers (`allow_origins = ["*"]`).
+   - Configures Lambda Proxy integration for `POST /chat` and preflight `OPTIONS /chat`.
+   - **Cost Safeguard:** Implements stage throttling (`rate_limit = 5 req/s`, `burst_limit = 10`) to eliminate denial-of-wallet risks.
+
+### Terraform Lifecycle Commands
+
+```powershell
+# 1. Navigate to dev environment
+cd terraform/environments/dev
+
+# 2. Format & Initialize providers (AWS ~> 5.0, Archive ~> 2.4)
+terraform init
+
+# 3. Validate syntax and module wiring
+terraform validate
+
+# 4. Preview resource provisioning
+terraform plan
+
+# 5. Deploy to AWS
+terraform apply
+
+# 6. Teardown completely (Zero ongoing charges)
+terraform destroy
+```
+
+---
+
+## 🚀 Next Milestone: Phase 4 (Frontend Web Interface)
+
+Phase 4 will deliver a clean, responsive single-page web interface:
+- **Chat Interface:** Dark-mode DevOps UI with message history.
+- **Copy Commands:** One-click copy for `kubectl` and AWS CLI diagnostic commands.
+- **Citation Viewer:** Interactive drawer displaying S3 runbook sources and snippets.
+- **Client Configuration:** Pre-wired to invoke the API Gateway `POST /chat` endpoint.
