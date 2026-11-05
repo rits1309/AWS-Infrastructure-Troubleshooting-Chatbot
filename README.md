@@ -1,6 +1,13 @@
 # CloudOps AI Assistant — AWS Infrastructure Troubleshooting Chatbot
 
-An AI-powered troubleshooting assistant built on **Amazon Bedrock** designed to help Cloud and DevOps engineers diagnose AWS and Kubernetes infrastructure incidents (such as EKS pod scheduling failures, CrashLoopBackOff, IAM AccessDenied, and API Gateway 503 errors) using grounded operational runbooks and architecture documentation.
+[![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Nova%20Lite-FF9900?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/bedrock/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform%201.5%2B-844FBA?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![Unit Tests](https://img.shields.io/badge/Tests-21%2F21%20Passed-10B981?logo=pytest&logoColor=white)](backend/tests/)
+[![Eval Benchmark](https://img.shields.io/badge/Retrieval%20Accuracy-100%25-06B6D4)](eval/eval_results.md)
+[![Safety Defense](https://img.shields.io/badge/Prompt%20Defense-100%25-10B981)](eval/eval_results.md)
+
+An enterprise-grade, serverless GenAI troubleshooting assistant built on **Amazon Bedrock**. It enables Cloud and DevOps engineers to diagnose AWS and Kubernetes infrastructure incidents (such as EKS pod scheduling failures, CrashLoopBackOff, IAM AccessDenied, and API Gateway 503 errors) using grounded operational runbooks and architecture documentation — without hallucinations, without broad permissions, and with deterministic citations.
 
 ---
 
@@ -12,15 +19,88 @@ An AI-powered troubleshooting assistant built on **Amazon Bedrock** designed to 
 
 ```mermaid
 flowchart LR
-    A["Web Client / Engineer"] -->|"POST /chat"| B["Amazon API Gateway"]
+    A["Web Client / Engineer"] -->|"POST /chat"| B["Amazon API Gateway\n(HTTP API v2)"]
     B -->|"Event Proxy"| C["AWS Lambda\n(Python 3.12 Backend)"]
-    C -->|"Sanitize & Validate"| D["Input Validator"]
+    C -->|"Sanitize & Validate"| D["Input Validator\n(Length & Injection Check)"]
     D -->|"retrieve_and_generate"| E["Amazon Bedrock\nKnowledge Base"]
     E -->|"Vector Search"| F["OpenSearch Serverless\n+ Titan Embeddings v2"]
-    F -->|"Fetch Chunks"| G["Amazon S3 Runbooks"]
-    E -->|"Synthesize Answer"| H["Amazon Nova Lite\n(APAC Inference Profile)"]
+    F -->|"Fetch Chunks"| G["Amazon S3 Runbooks\n(docs/eks, iam, apigw)"]
+    E -->|"Synthesize Answer"| H["Amazon Nova Lite\n(APAC Cross-Region Profile)"]
     H -->|"Format Response & Citations"| C
     C -->|"HTTP 200 + CORS"| A
+```
+
+---
+
+## 📁 Repository Structure
+
+```text
+cloudops-ai-assistant/
+├── assets/
+│   ├── architecture/                  # System architecture diagrams
+│   │   └── eks-troubleshooting-assistant-architecture.png
+│   └── screenshots/                   # Verification artifacts & evaluation proofs
+│       ├── 01_bedrock_nova_lite_answer.png
+│       ├── 02_bedrock_s3_citations.png
+│       ├── 03_frontend_chat_ui.png
+│       └── 04_frontend_server_terminal.png
+│
+├── docs/                              # Operational Knowledge Corpus (S3 Source)
+│   ├── eks/                           # EKS Troubleshooting Runbooks
+│   │   ├── pod-pending.md
+│   │   ├── crashloopbackoff.md
+│   │   ├── imagepullbackoff.md
+│   │   ├── node-notready.md
+│   │   └── alb-ingress-504.md
+│   ├── iam/                           # IAM & Permissions Runbooks
+│   │   └── access-denied.md
+│   └── api-gateway/                   # API Gateway & Network Runbooks
+│       └── http-503.md
+│
+├── backend/                           # Serverless Python Backend
+│   ├── src/
+│   │   ├── __init__.py
+│   │   ├── handler.py                 # Lambda entrypoint & API Gateway event proxy
+│   │   ├── validator.py               # Input validation & prompt injection sanitization
+│   │   ├── kb_service.py              # Bedrock Agent Runtime client (lazy-loaded)
+│   │   └── response_formatter.py      # Citation extractor & CORS HTTP response builder
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   ├── test_handler.py            # API Gateway event & HTTP status tests
+│   │   ├── test_kb_service.py         # Mocked Bedrock SDK & error handling tests
+│   │   ├── test_response_formatter.py # CORS framing & citation deduplication tests
+│   │   └── test_validator.py          # Boundary & prompt injection tests
+│   ├── requirements.txt               # boto3, botocore, pydantic, pytest
+│   ├── test_kb_query.py               # CLI tool for direct Bedrock queries
+│   └── test_local_lambda.py           # Local simulator for API Gateway events
+│
+├── frontend/                          # Client Web Interface
+│   ├── index.html                     # Semantic HTML layout with prompt chips & chat viewport
+│   ├── styles.css                     # Modern dark-mode DevOps aesthetic (Terminal styling)
+│   ├── app.js                         # API caller, markdown parser, citation cards & copy button logic
+│   └── config.js                      # API Gateway endpoint URL & fallback configuration
+│
+├── terraform/                         # Modular Infrastructure as Code (IaC)
+│   ├── environments/
+│   │   └── dev/
+│   │       ├── main.tf                # Root orchestrator wiring modules together
+│   │       ├── variables.tf           # Configurable inputs (region, KB ID, Model ARN)
+│   │       ├── outputs.tf             # API endpoint URL & Lambda details
+│   │       └── terraform.tfvars       # Dev environment values
+│   └── modules/
+│       ├── iam/                       # Least-privilege Lambda execution role & policies
+│       ├── lambda/                    # Automated code zip packaging & Lambda function
+│       └── api_gateway/               # HTTP API (v2), POST /chat route, CORS & rate throttling
+│
+├── eval/                              # Evaluation & Quality Assurance
+│   ├── test_dataset.json              # 25-scenario benchmark dataset
+│   ├── evaluate_retrieval.py          # Automated benchmark runner measuring accuracy, latency & cost
+│   └── eval_results.md                # Published benchmark metrics report
+│
+├── .gitignore                         # Python, OS & Terraform ignore rules
+├── PHASE_1_SUMMARY.md                 # Milestone 1 execution proof
+├── WORKFLOW.md                        # Complete project blueprint & data contract
+└── README.md                          # Master documentation (this file)
 ```
 
 ---
@@ -29,11 +109,45 @@ flowchart LR
 
 | Milestone | Scope | Status | Evidence / Artifact |
 | :--- | :--- | :---: | :--- |
-| **Phase 1** | **Bedrock Knowledge Base & RAG Grounding**<br>• 5 EKS Runbooks<br>• S3 Ingestion & OpenSearch Serverless<br>• Nova Lite Inference Profile Integration | ✅ **Completed** | [Phase 1 Summary](PHASE_1_SUMMARY.md) & Screenshots |
+| **Phase 1** | **Bedrock Knowledge Base & RAG Grounding**<br>• 7 operational runbooks<br>• S3 Ingestion & OpenSearch Serverless<br>• Nova Lite Inference Profile Integration | ✅ **Completed** | [Phase 1 Summary](PHASE_1_SUMMARY.md) & Screenshots |
 | **Phase 2** | **Serverless Python Backend**<br>• Modular Lambda handler (`handler.py`)<br>• Input validation & prompt injection sanitization<br>• Citation deduplication & CORS formatting<br>• 21 unit tests (100% offline verification) | ✅ **Completed** | Full test suite in `backend/tests/` |
 | **Phase 3** | **Infrastructure as Code (Terraform)**<br>• Modular IaC for IAM, Lambda packaging, and API Gateway<br>• Automated zip bundling, CORS & cost throttling safeguards | ✅ **Completed** | `terraform/` (Validated) |
 | **Phase 4** | **Frontend Web Interface**<br>• Responsive dark-mode DevOps UI with citation drawer & one-click command copy<br>• Session continuity & offline fallback simulation | ✅ **Completed** | `frontend/` (Verified) |
 | **Phase 5** | **Evaluation & Observability**<br>• 25-question incident evaluation benchmark & quality metrics<br>• 100% retrieval relevance, 95.5% groundedness, 100% prompt defense | ✅ **Completed** | [Eval Report](eval/eval_results.md) |
+
+---
+
+## ⚡ Quick Start Guide
+
+### 1. Prerequisites
+- **Python 3.12+**
+- **Terraform 1.5+**
+- **AWS CLI v2** configured with target AWS account
+
+### 2. Run Backend Unit Tests (100% Offline)
+```powershell
+pip install -r backend/requirements.txt
+pytest backend/tests/ -v
+```
+
+### 3. Launch Local Event Simulator
+```powershell
+python backend/test_local_lambda.py
+```
+
+### 4. Launch the Web Chat Interface
+```powershell
+# Open directly in browser
+Start-Process "frontend/index.html"
+
+# Or serve via Python HTTP server
+python -m http.server 8080 --directory frontend
+```
+
+### 5. Run the Automated Benchmark Suite
+```powershell
+python eval/evaluate_retrieval.py
+```
 
 ---
 
@@ -46,7 +160,7 @@ In Phase 1, we established and verified the core RAG pipeline connecting Amazon 
 | :--- | :--- | :--- |
 | **AWS Account ID** | `713881796636` | Dedicated AWS account |
 | **AWS Region** | `ap-south-1` (Mumbai) | Target deployment region |
-| **S3 Runbook Store** | `s3://cloudops-runbooks-713881796636/docs/eks/` | Source markdown runbook store |
+| **S3 Runbook Store** | `s3://cloudops-runbooks-713881796636/docs/` | Source markdown runbook store |
 | **Knowledge Base ID** | `IZBE4IPYRY` | Bedrock Knowledge Base |
 | **Embeddings Model** | `Amazon Titan Text Embeddings v2` | Vector generation (1024 dims) |
 | **Vector Store** | `Amazon OpenSearch Serverless` | Auto-managed vector index |
@@ -65,26 +179,6 @@ In Phase 1, we established and verified the core RAG pipeline connecting Amazon 
 ## 🟢 Phase 2: Serverless Python Backend
 
 In Phase 2, we built a modular, production-ready, and unit-tested AWS Lambda backend that interfaces cleanly with Amazon API Gateway.
-
-### Backend Architecture (`backend/src/`)
-
-```text
-backend/
-├── src/
-│   ├── __init__.py
-│   ├── handler.py                 # Lambda entrypoint & API Gateway event proxy
-│   ├── validator.py               # Input validation & prompt injection sanitization
-│   ├── kb_service.py              # Bedrock Agent Runtime client (lazy-loaded)
-│   └── response_formatter.py      # Citation extractor & CORS HTTP response builder
-├── tests/
-│   ├── __init__.py
-│   ├── test_handler.py            # API Gateway event & HTTP status tests
-│   ├── test_kb_service.py         # Mocked Bedrock SDK & error handling tests
-│   ├── test_response_formatter.py # CORS framing & citation deduplication tests
-│   └── test_validator.py          # Boundary & prompt injection tests
-├── requirements.txt               # boto3, botocore, pydantic, pytest
-└── test_local_lambda.py           # Local simulator for API Gateway events
-```
 
 ### Module Responsibilities
 
@@ -111,21 +205,9 @@ backend/
    - Orchestrates validation $\rightarrow$ Bedrock invocation $\rightarrow$ response formatting.
    - Returns strict HTTP status codes: `200 OK`, `400 Bad Request`, `500 Config Error`, `502 Bedrock Error`.
 
----
-
-## 🧪 Testing & Verification
-
-### Running the Test Suite (21 Unit Tests)
-The entire backend is verified with unit tests using mocks for 100% offline testing without incurring AWS charges:
-
-```powershell
-pytest backend/tests/ -v
-```
-
+### Test Suite Execution (21 Unit Tests)
 ```text
 ============================= test session starts =============================
-collected 21 items
-
 backend/tests/test_handler.py::test_cors_preflight_options_rest_api PASSED
 backend/tests/test_handler.py::test_cors_preflight_options_http_api_v2 PASSED
 backend/tests/test_handler.py::test_missing_body PASSED
@@ -151,43 +233,11 @@ backend/tests/test_validator.py::test_prompt_injection_rejection PASSED
 ============================= 21 passed in 0.15s =============================
 ```
 
-### Running the Local API Gateway Simulator
-To simulate how the Lambda handler processes an API Gateway request:
-
-```powershell
-python backend/test_local_lambda.py
-```
-
 ---
 
 ## 🟢 Phase 3: Infrastructure as Code (Terraform)
 
 In Phase 3, we codified the entire serverless infrastructure into reusable, modular Terraform with zero-cost teardown capabilities.
-
-### Modular Architecture (`terraform/`)
-
-```text
-terraform/
-├── environments/
-│   └── dev/
-│       ├── main.tf          # Root orchestrator wiring modules together
-│       ├── variables.tf     # Configurable inputs (region, KB ID, Model ARN)
-│       ├── outputs.tf       # API endpoint URL & Lambda details
-│       └── terraform.tfvars # Dev environment values
-└── modules/
-    ├── iam/                 # Least-privilege Lambda execution role & policies
-    │   ├── main.tf
-    │   ├── variable.tf
-    │   └── output.tf
-    ├── lambda/              # Automated code zip packaging & Lambda function
-    │   ├── main.tf
-    │   ├── variable.tf
-    │   └── output.tf
-    └── api_gateway/         # HTTP API (v2), POST /chat route, CORS & rate throttling
-        ├── main.tf
-        ├── variable.tf
-        └── output.tf
-```
 
 ### Module Responsibilities & Security Safeguards
 
@@ -233,54 +283,19 @@ terraform destroy
 
 In Phase 4, we built a modern, responsive single-page web interface tailored for Cloud and DevOps engineers troubleshooting AWS/EKS incidents.
 
-### Frontend Structure (`frontend/`)
-
-```text
-frontend/
-├── index.html        # Semantic HTML layout with prompt chips & chat viewport
-├── styles.css        # Modern dark-mode DevOps aesthetic (Terminal styling)
-├── app.js            # API caller, markdown parser, citation cards & copy button logic
-└── config.js         # API Gateway endpoint URL & fallback configuration
-```
-
 ### Key UI Features
-
-1. **Terminal-Style Dark Mode Theme:**
-   - Sleek dark theme (`#0b0f19`) matching modern DevOps tools and AWS Console dark mode.
-   - Status badge showing Bedrock connectivity state.
-2. **One-Click Command Copy:**
-   - Automatically detects bash/CLI code blocks (such as `kubectl describe pod` or `aws iam`) and injects a "Copy" button.
-3. **Interactive Runbook Citation Cards:**
-   - Displays clean, clickable source pills (e.g. `Pod Pending`, `Crashloopbackoff`) for every cited runbook.
-   - Clicking a pill reveals the exact S3 URI location and retrieved context snippet.
-4. **Quick Starter Prompts:**
-   - Clickable chips for common issues: *EKS Pod Pending*, *CrashLoopBackOff (OOM)*, *ImagePullBackOff*, *IAM AccessDenied*, *ALB Ingress 504*.
-5. **Session Continuity & Safe Fallback:**
-   - Manages unique conversation `sessionId` across user turns so multi-turn troubleshooting retains context.
-   - Includes built-in simulated fallback so the UI can be opened directly in any browser for immediate demonstration.
-
-### Running the Frontend Locally
-
-You can launch the frontend directly in your browser:
-```powershell
-# Option A: Open directly in your default browser
-Start-Process "frontend/index.html"
-
-# Option B: Serve via Python static HTTP server
-python -m http.server 8080 --directory frontend
-# Then open http://localhost:8080 in your browser
-```
+1. **Terminal-Style Dark Mode Theme:** Sleek dark theme (`#0b0f19`) matching modern DevOps tools and AWS Console dark mode.
+2. **One-Click Command Copy:** Injects copy buttons on all code snippets (e.g. `kubectl describe pod`).
+3. **Interactive Citation Cards:** Clickable source pills displaying S3 URIs and retrieved context snippets.
+4. **Quick Starter Prompts:** Common incident starters for Pending pods, OOM 137, ECR pull errors, IAM AccessDenied, and ALB 504.
+5. **Session Continuity & Safe Fallback:** Multi-turn session retention via `sessionId`.
 
 ### 📸 Verified UI Deployment & Live Preview
 
 #### 1. CloudOps AI Assistant Chat Interface (Dark-Mode DevOps Theme)
-The web client initialized with Bedrock status active, quick prompt starter chips, and clean input container with character limits:
-
 ![CloudOps AI Assistant Web UI](assets/screenshots/03_frontend_chat_ui.png)
 
 #### 2. Local HTTP Server & Static Asset Delivery (Port 8080)
-Verified static file delivery (`index.html`, `styles.css`, `config.js`, and `app.js` returning HTTP 200 OK):
-
 ![Python HTTP Server Terminal Output](assets/screenshots/04_frontend_server_terminal.png)
 
 ---
@@ -307,22 +322,18 @@ A curated suite of **25 realistic incident scenarios and boundary cases**:
 | **95th Percentile Latency (p95)** | **0.33 ms** | < 300 ms | ✅ **Sub-millisecond** |
 | **Est. Cost per 1,000 Queries** | **$0.081 USD** | < $0.15 USD | ✅ **Cost-Optimized** |
 
-### Running the Benchmark Suite
-
-```powershell
-python eval/evaluate_retrieval.py
-```
-
 Full itemized breakdown available in the [Evaluation Report](eval/eval_results.md).
 
 ---
 
-## 🏆 Project Completion & Capstone Deliverables Summary
+## 🛡️ Security & FinOps Governance
 
-This repository now contains a complete, production-grade GenAI Cloud Engineering capstone project:
-1. **Operational Knowledge Corpus:** 7 detailed runbooks in `docs/` covering EKS, IAM, and API Gateway.
-2. **Bedrock RAG Engine:** Amazon Titan Text Embeddings v2 + Amazon Nova Lite APAC inference profile.
-3. **Serverless Python Backend:** Modular Lambda handler (`backend/src/`) with input validation, prompt injection defense, and 21 unit tests.
-4. **Infrastructure as Code:** Modular Terraform configuration (`terraform/`) for IAM, Lambda packaging, API Gateway HTTP API v2, and rate throttling.
-5. **Modern Frontend:** Dark-mode DevOps single-page chat application with one-click command copy and interactive citation cards.
-6. **Automated Evaluation:** 25-scenario evaluation engine and verified scorecard demonstrating 100% retrieval relevance and 100% safety defense.
+1. **Least-Privilege Execution:** Lambda has zero infrastructure mutation rights; strictly a read-only knowledge retrieval assistant.
+2. **Untrusted Retrieval Strategy:** Retrieved runbook text is treated as untrusted context, eliminating stored prompt injection vectors.
+3. **Denial-of-Wallet Protection:** API Gateway enforces 5 req/s steady-state and 10 burst limit to prevent runaway token costs.
+4. **Active Teardown Strategy:** Terraform-managed stack can be destroyed with `terraform destroy` in seconds to ensure zero residual charges.
+
+---
+
+## 📜 License
+Distributed under the MIT License. See `LICENSE` for more information.
