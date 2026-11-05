@@ -19,7 +19,9 @@ cloudops-ai-assistant/
 │   │   └── eks-troubleshooting-assistant-architecture.png
 │   └── screenshots/                   # Verification artifacts & evaluation proofs
 │       ├── 01_bedrock_nova_lite_answer.png
-│       └── 02_bedrock_s3_citations.png
+│       ├── 02_bedrock_s3_citations.png
+│       ├── 03_frontend_chat_ui.png
+│       └── 04_frontend_server_terminal.png
 │
 ├── docs/                              # Operational Knowledge Corpus (S3 Source)
 │   ├── eks/                           # EKS Troubleshooting Runbooks

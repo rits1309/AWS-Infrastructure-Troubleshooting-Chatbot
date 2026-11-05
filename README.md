@@ -271,6 +271,18 @@ python -m http.server 8080 --directory frontend
 # Then open http://localhost:8080 in your browser
 ```
 
+### 📸 Verified UI Deployment & Live Preview
+
+#### 1. CloudOps AI Assistant Chat Interface (Dark-Mode DevOps Theme)
+The web client initialized with Bedrock status active, quick prompt starter chips, and clean input container with character limits:
+
+![CloudOps AI Assistant Web UI](assets/screenshots/03_frontend_chat_ui.png)
+
+#### 2. Local HTTP Server & Static Asset Delivery (Port 8080)
+Verified static file delivery (`index.html`, `styles.css`, `config.js`, and `app.js` returning HTTP 200 OK):
+
+![Python HTTP Server Terminal Output](assets/screenshots/04_frontend_server_terminal.png)
+
 ---
 
 ## 🚀 Next Milestone: Phase 5 (Evaluation & Observability)
