@@ -34,7 +34,7 @@ resource "aws_lambda_function" "chat_api" {
     variables = {
       KNOWLEDGE_BASE_ID = var.knowledge_base_id
       BEDROCK_MODEL_ARN = var.bedrock_model_arn
-      AWS_REGION        = var.aws_region
+      BEDROCK_REGION    = var.aws_region
     }
   }
 

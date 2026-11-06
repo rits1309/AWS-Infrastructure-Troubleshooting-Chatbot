@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 
 # Initialized once during cold start so subsequent invocations reuse the connection
 kb_service = BedrockKBService(
-    region=os.environ.get("AWS_REGION", "ap-south-1"),
+    region=os.environ.get("BEDROCK_REGION") or os.environ.get("AWS_REGION", "ap-south-1"),
     kb_id=os.environ.get("KNOWLEDGE_BASE_ID", ""),
     model_arn=os.environ.get(
         "BEDROCK_MODEL_ARN",
