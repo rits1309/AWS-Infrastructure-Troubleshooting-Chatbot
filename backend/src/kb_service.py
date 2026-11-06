@@ -14,7 +14,7 @@ import boto3
 from typing import Dict, Any, Optional
 from botocore.exceptions import BotoCoreError, ClientError
 
-DEFAULT_REGION = os.environ.get("AWS_REGION", "ap-south-1")
+DEFAULT_REGION = os.environ.get("BEDROCK_REGION") or os.environ.get("AWS_REGION", "ap-south-1")
 DEFAULT_MODEL_ARN = os.environ.get(
     "BEDROCK_MODEL_ARN",
     "arn:aws:bedrock:ap-south-1:713881796636:inference-profile/apac.amazon.nova-lite-v1:0"
