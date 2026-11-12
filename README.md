@@ -335,5 +335,46 @@ Full itemized breakdown available in the [Evaluation Report](eval/eval_results.m
 
 ---
 
+## 🌿 Contributing & Git Branching Workflow (For Developers)
+
+This repository follows **GitHub Flow**. Never commit directly to `main`—always create a new branch from an up-to-date `main`, validate your changes, and open a Pull Request.
+
+### 1. Start from the Latest `main`
+```powershell
+git checkout main
+git pull origin main
+git checkout -b fix/my-bug-or-feature
+```
+
+Use a clear prefix for your branch name:
+- `feature/<short-name>` — New capabilities (e.g., `feature/cognito-auth`)
+- `fix/<short-name>` — Bug fixes (e.g., `fix/lambda-timeout`)
+- `docs/<short-name>` — Documentation or runbook updates
+- `chore/<short-name>` — Tooling, CI/CD, or dependency updates
+
+### 2. Verify Locally Before Pushing
+Run the offline test suite and benchmark to make sure nothing breaks:
+```powershell
+pytest backend/tests/ -v
+python eval/evaluate_retrieval.py
+```
+
+### 3. Commit, Push & Open a Pull Request
+```powershell
+git add <changed-files>
+git commit -m "fix: short description of your change"
+git push -u origin fix/my-bug-or-feature
+```
+1. Open a **Pull Request** into `main` on GitHub.
+2. Once reviewed and merged, delete the merged branch locally and on remote:
+   ```powershell
+   git checkout main
+   git pull origin main
+   git branch -d fix/my-bug-or-feature
+   git push origin --delete fix/my-bug-or-feature
+   ```
+
+---
+
 ## 📜 License
 Distributed under the MIT License. See `LICENSE` for more information.
