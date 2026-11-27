@@ -6,7 +6,7 @@
  */
 const CONFIG = {
     // API Gateway /chat endpoint URL
-    API_URL: window.API_URL || "https://api.cloudops-assistant.internal/chat",
+    API_URL: window.API_URL || "https://2y0rhynac8.execute-api.ap-south-1.amazonaws.com/chat",
 
     // Enable offline simulated responses if API Gateway is not currently reachable
     ENABLE_OFFLINE_FALLBACK: true,
